@@ -10,10 +10,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Entity
 @Table(name = "address_book")
-public class AddressModel {
+public class AddressBookEntry {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private String id;
     private String name;
+    private String phoneNumber;
+    private String email;
     private String address;
 }
