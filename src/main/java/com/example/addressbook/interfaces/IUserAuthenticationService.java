@@ -14,7 +14,6 @@ public interface IUserAuthenticationService {
     String logout(String token) throws UserException;
     String forgotPassword(ForgotPasswordDTO forgotPasswordDTO) throws UserException;
     String resetPassword(String token, ResetPasswordDTO resetPasswordDTO) throws UserException;
-    String changePassword(String token, ChangePasswordDTO changePasswordDTO) throws UserException;
 
 //    String activateUser(String token) throws UserException;
 }

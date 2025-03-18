@@ -8,6 +8,7 @@ import org.hibernate.annotations.Cache;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,6 +23,9 @@ public class AddressBookService implements IAddressBookService {
     @Autowired
     AddressBookRepository addressBookRepository;    // Injecting AddressBookRepository to perform CRUD operations
 
+    @Autowired
+    private RedisTemplate redisTemplate;
+
     ModelMapper modelMapper = new ModelMapper();    // ModelMapper to map DTOs to entities and vice versa
 
     /**
@@ -31,7 +35,6 @@ public class AddressBookService implements IAddressBookService {
      * @return List<AddressBookDTO> - List of AddressBookDTO
      */
     @Override
-    @Cacheable(value = "addressBookCache")
     public List<AddressBookDTO> getAddressBookData() {
         List<AddressBook> addressBooksLists = addressBookRepository.findAll();
         return addressBooksLists.stream()
@@ -81,8 +84,10 @@ public class AddressBookService implements IAddressBookService {
             addressBook.setFirstName(updatedAddressBookDTO.getFirstName());
             addressBook.setLastName(updatedAddressBookDTO.getLastName());
             addressBook.setAddress(updatedAddressBookDTO.getAddress());
+            addressBook.setEmail(updatedAddressBookDTO.getEmail());
             addressBook.setPhoneNumber(updatedAddressBookDTO.getPhoneNumber());
             addressBookRepository.save(addressBook);
+            redisTemplate.delete("AddressBook:" + id);
             return true;
         } catch (Exception e) {
             return false;
@@ -99,6 +104,7 @@ public class AddressBookService implements IAddressBookService {
     public void deleteAddressBookData(long id) {
         try {
             addressBookRepository.deleteById(id);
+            redisTemplate.delete(id);
         } catch (Exception e) {
             throw new RuntimeException("Employee Payroll not found with id: " + id);
         }

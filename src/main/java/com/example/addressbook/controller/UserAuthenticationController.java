@@ -129,30 +129,4 @@ public class UserAuthenticationController {
             return new ResponseEntity<>(responseUserDTO, HttpStatus.BAD_REQUEST);
         }
     }
-
-
-    /**
-     * Endpoint to change password for a user.
-     * @param sessionToken - The JWT sessionToken of the user whose password is to be changed.
-     * @param changePasswordDTO - The ChangePasswordDTO object containing new password details.
-     * @return ResponseEntity with change password message
-     */
-    @PostMapping("/change-password")
-    public ResponseEntity<ResponseDTO<?>> changePassword(@RequestHeader String sessionToken, @Valid @RequestBody ChangePasswordDTO changePasswordDTO) {
-        log.info("Changing password for user with sessionToken: {}", sessionToken);
-        try {
-            if(!changePasswordDTO.getNewPassword().equals(changePasswordDTO.getConfirmPassword())) {
-                log.error("New password and confirm password do not match");
-                ResponseDTO<String> responseUserDTO = new ResponseDTO<String>("Change password failed!!", "New password and confirm password do not match");
-                return new ResponseEntity<>(responseUserDTO, HttpStatus.BAD_REQUEST);
-            }
-            String result = userAuthenticationService.changePassword(sessionToken, changePasswordDTO);
-            ResponseDTO<String> responseUserDTO = new ResponseDTO<String>("Password changed successfully!!", result);
-            return new ResponseEntity<>(responseUserDTO, HttpStatus.OK);
-        } catch (UserException e) {
-            log.error("Error changing password: {}", e.getMessage());
-            ResponseDTO<String> responseUserDTO = new ResponseDTO<String>("Change password failed!!", e.getMessage());
-            return new ResponseEntity<>(responseUserDTO, HttpStatus.BAD_REQUEST);
-        }
-    }
 }

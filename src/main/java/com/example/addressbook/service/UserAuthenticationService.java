@@ -7,11 +7,14 @@ import com.example.addressbook.model.UserAuthentication;
 import com.example.addressbook.repository.UserAuthenticationRepository;
 import com.example.addressbook.util.JwtToken;
 import com.example.addressbook.util.ResetToken;
+import org.apache.catalina.User;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.transaction.annotation.Transactional;
+import com.example.addressbook.service.MessageProducer;
 
 import java.util.concurrent.TimeUnit;
 
@@ -44,6 +47,10 @@ public class UserAuthenticationService implements IUserAuthenticationService {
     @Autowired
     RedisTemplate<String, Object> redisTemplate;        // RedisTemplate is used to interact with Redis database.
 
+    @Autowired
+    MessageProducer messageProducer;        // EventPublisherService is used to publish events.
+
+
     /**
      * This method registers a new user.
      * It takes a UserAuthenticationDTO object as input, maps it to UserAuthentication entity,
@@ -54,14 +61,23 @@ public class UserAuthenticationService implements IUserAuthenticationService {
      * @throws Exception - If any error occurs during registration.
      */
     @Override
+    @Transactional
     public UserAuthenticationDTO register(UserAuthenticationDTO userDTO) throws Exception {
+        if (existsByEmail(userDTO.getEmail()) != null) {
+            throw new UserException("Email '" + userDTO.getEmail() + "' is already registered!");
+        }
+
         UserAuthentication user = modelMapper.map(userDTO, UserAuthentication.class);
         user.setRole("User");
         String encodedPassword = passwordEncoder.encode(userDTO.getPassword());
 
         user.setPassword(encodedPassword);
 
-        userAuthenticationRepository.save(user);
+        UserAuthentication savedUser = userAuthenticationRepository.save(user);
+
+        String customMessage = "REGISTER|" + savedUser.getEmail() + "|" + savedUser.getFirstName() + " " + savedUser.getLastName();
+        messageProducer.sendMessage(customMessage);
+
         emailSenderService.sendEmail(user.getEmail(),"Registration Successful!",
                 "Hii "+ user.getFirstName() + "..."
                 + "\n\n\n\n You have successfully registered into MyAddressBook App!"
@@ -112,6 +128,9 @@ public class UserAuthenticationService implements IUserAuthenticationService {
             redisTemplate.opsForValue().set("session:" + sessionToken, user, 10, TimeUnit.MINUTES);
             emailSenderService.sendEmail(user.getEmail(),"Logged in Successfully!", "Hii...."+user.getFirstName()+"\n\n You have successfully logged in into MyAddressBook App!");
 //            userAuthenticationRepository.save(user);
+            String customMessage = "LOGIN|" + user.getEmail() + "|" + user.getFirstName() + " " + user.getLastName();
+            messageProducer.sendMessage(customMessage);
+
             return "Congratulations!! You have logged in successfully!\n\n Your JWT token is: " + sessionToken;
         } else if (user == null) {
             throw new UserException("Sorry! User not Found!");
@@ -187,6 +206,7 @@ public class UserAuthenticationService implements IUserAuthenticationService {
      * @throws UserException - If any error occurs during password recovery.
      */
     @Override
+    @Transactional
     public String forgotPassword(ForgotPasswordDTO forgotPasswordDTO) throws UserException {
         String email = forgotPasswordDTO.getEmail();
         UserAuthentication user = existsByEmail(email);
@@ -201,37 +221,6 @@ public class UserAuthenticationService implements IUserAuthenticationService {
                             + "\nIf this request isn't made by you, just don't worry. Just don't share the below credentials with anyone else\n\n"
                             + "Click the link to reset your password: " + resetLink + "\n\nUse the following token in the header: " + resetToken);
             return "Reset token sent to your email!";
-        } else {
-            throw new UserException("User not found");
-        }
-    }
-
-
-    /**
-     * This method changes the password for a user.
-     * It takes a JWT token and a ChangePasswordDTO object as input,
-     * verifies if the token is valid, updates the password, and sends a success email to the user.
-     *
-     * @param sessionToken - The JWT token of the user whose password is to be changed.
-     * @param changePasswordDTO - The ChangePasswordDTO object containing new password details.
-     * @return String - A success message.
-     * @throws UserException - If any error occurs during password change.
-     */
-    @Override
-    public String changePassword(String sessionToken, ChangePasswordDTO changePasswordDTO) throws UserException {
-        if (tokenUtil.isTokenExpired(sessionToken))
-            throw new UserException("Session expired!");
-
-        long userId = Long.parseLong(tokenUtil.decodeToken(sessionToken));
-        UserAuthentication user = existsById(userId);
-        if (user != null) {
-            String password = changePasswordDTO.getNewPassword();
-            String encodedPassword = passwordEncoder.encode(password);
-            user.setPassword(encodedPassword);
-            user.setResetToken(null);
-            userAuthenticationRepository.save(user);
-            emailSenderService.sendEmail(user.getEmail(),"Password Changed Successfully!", "Hii...."+user.getFirstName()+"\n\n Your password has been changed successfully!");
-            return "Password changed successfully!!";
         } else {
             throw new UserException("User not found");
         }
