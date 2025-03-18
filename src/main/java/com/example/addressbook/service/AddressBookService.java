@@ -7,6 +7,7 @@ import com.example.addressbook.repository.AddressBookRepository;
 import org.hibernate.annotations.Cache;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -78,6 +79,7 @@ public class AddressBookService implements IAddressBookService {
      * @return boolean - true if the update was successful, false otherwise
      */
     @Override
+    @CacheEvict(value = "addressBookCache", key = "#id")
     public boolean updateAddressBookData(long id, AddressBookDTO updatedAddressBookDTO) {
         try {
             AddressBook addressBook = addressBookRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee Payroll not found with id: " + id));
@@ -87,7 +89,6 @@ public class AddressBookService implements IAddressBookService {
             addressBook.setEmail(updatedAddressBookDTO.getEmail());
             addressBook.setPhoneNumber(updatedAddressBookDTO.getPhoneNumber());
             addressBookRepository.save(addressBook);
-            redisTemplate.delete("AddressBook:" + id);
             return true;
         } catch (Exception e) {
             return false;
@@ -101,10 +102,10 @@ public class AddressBookService implements IAddressBookService {
      * @param id - The ID of the address book entry to be deleted
      */
     @Override
+    @CacheEvict(value = "addressBookCache", key = "#id")
     public void deleteAddressBookData(long id) {
         try {
             addressBookRepository.deleteById(id);
-            redisTemplate.delete(id);
         } catch (Exception e) {
             throw new RuntimeException("Employee Payroll not found with id: " + id);
         }
