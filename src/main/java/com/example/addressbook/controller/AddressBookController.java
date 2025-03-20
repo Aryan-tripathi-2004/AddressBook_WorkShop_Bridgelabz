@@ -4,6 +4,7 @@ import com.example.addressbook.dto.AddressBookDTO;
 import com.example.addressbook.dto.ResponseDTO;
 import com.example.addressbook.exception.AddressBookNotFoundException;
 import com.example.addressbook.interfaces.IAddressBookService;
+import com.example.addressbook.util.JwtToken;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -25,14 +27,33 @@ public class AddressBookController {
     // AddressBookService instance to perform CRUD operations on address book data.
     @Autowired
     IAddressBookService addressBookService;
+    @Autowired
+    JwtToken jwtToken;
 
     /**
      * Endpoint to get all address book entries.
      * @return ResponseEntity with list of AddressBookDTO which contains all address book entries
      */
     @RequestMapping(path = {"", "/"}, method = RequestMethod.GET)
-    public ResponseEntity<ResponseDTO<?>> getAllAddressBook() {
+    public ResponseEntity<ResponseDTO<?>> getAllAddressBook(@RequestHeader(value = "Authorization", required = false) String token) {
         log.info("Fetching all address book entries");
+
+
+        if (token == null || !token.startsWith("Bearer ")) {
+            log.error("Unauthorized access: Missing or invalid token");
+            return new ResponseEntity<>(new ResponseDTO<String>("Unauthorized", "Token is missing or invalid"), HttpStatus.UNAUTHORIZED);
+        }
+
+        try{
+            String[]tokenData = token.split(" ");
+            log.info(Arrays.toString(tokenData));
+            if(jwtToken.isTokenExpired(tokenData[1])){
+                return new ResponseEntity<>(new ResponseDTO<String>("Unauthorized","Token is expired"),HttpStatus.UNAUTHORIZED);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(new ResponseDTO<String>("Unauthorized",e.getMessage()),HttpStatus.UNAUTHORIZED);
+        }
+
         try {
             List<AddressBookDTO> addressBookData = addressBookService.getAddressBookData();
             return new ResponseEntity<>(new ResponseDTO<List<AddressBookDTO>>("Get All Employees Payroll Data", addressBookData), HttpStatus.OK);
@@ -48,8 +69,23 @@ public class AddressBookController {
      * @return ResponseEntity with AddressBookDTO which contains the address book entry
      */
     @GetMapping("/{id}")
-    public ResponseEntity<ResponseDTO<?>> getContactById(@PathVariable Long id) {
+    public ResponseEntity<ResponseDTO<?>> getContactById(@PathVariable Long id, @RequestHeader(value = "Authorization", required = false) String token) {
         log.info("Fetching address book entry with ID: {}", id);
+
+        if (token == null || !token.startsWith("Bearer ")) {
+            log.error("Unauthorized access: Missing or invalid token");
+            return new ResponseEntity<>(new ResponseDTO<String>("Unauthorized", "Token is missing or invalid"), HttpStatus.UNAUTHORIZED);
+        }
+        try{
+            String[]tokenData = token.split(" ");
+            log.info(Arrays.toString(tokenData));
+            if(jwtToken.isTokenExpired(tokenData[1])){
+                return new ResponseEntity<>(new ResponseDTO<String>("Unauthorized","Token is expired"),HttpStatus.UNAUTHORIZED);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(new ResponseDTO<String>("Unauthorized",e.getMessage()),HttpStatus.UNAUTHORIZED);
+        }
+
         try {
             AddressBookDTO addressBook = addressBookService.getAddressBookDataById(id);
             if (addressBook == null)
@@ -67,8 +103,24 @@ public class AddressBookController {
      * @return ResponseEntity with created AddressBookDTO
      */
     @PostMapping("")
-    public ResponseEntity<ResponseDTO<?>> addInAddressBook(@Valid @RequestBody AddressBookDTO AddressBookDTO) {
+    public ResponseEntity<ResponseDTO<?>> addInAddressBook(@Valid @RequestBody AddressBookDTO AddressBookDTO,@RequestHeader(value = "Authorization", required = false) String token) {
         log.info("Adding new address book entry: {}", AddressBookDTO);
+
+        if (token == null || !token.startsWith("Bearer ")) {
+            log.error("Unauthorized access: Missing or invalid token");
+            return new ResponseEntity<>(new ResponseDTO<String>("Unauthorized", "Token is missing or invalid"), HttpStatus.UNAUTHORIZED);
+        }
+        try{
+            String[]tokenData = token.split(" ");
+            log.info(Arrays.toString(tokenData));
+            if(jwtToken.isTokenExpired(tokenData[1])){
+                return new ResponseEntity<>(new ResponseDTO<String>("Unauthorized","Token is expired"),HttpStatus.UNAUTHORIZED);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(new ResponseDTO<String>("Unauthorized",e.getMessage()),HttpStatus.UNAUTHORIZED);
+        }
+
+
         try {
             AddressBookDTO newAddressBook = addressBookService.createAddressBookData(AddressBookDTO);
             return new ResponseEntity<>(new ResponseDTO<AddressBookDTO>("Create New Data in addressBook", newAddressBook), HttpStatus.OK);
@@ -85,8 +137,23 @@ public class AddressBookController {
      * @return ResponseEntity with updated AddressBookDTO
      */
     @PutMapping("/{id}")
-    public ResponseEntity<ResponseDTO<?>> updateAddressBook(@PathVariable Long id, @Valid @RequestBody AddressBookDTO updatedAddressBook) {
+    public ResponseEntity<ResponseDTO<?>> updateAddressBook(@PathVariable Long id, @Valid @RequestBody AddressBookDTO updatedAddressBook,@RequestHeader(value = "Authorization", required = false) String token) {
         log.info("Updating address book entry with ID: {} to {}", id, updatedAddressBook);
+
+        if (token == null || !token.startsWith("Bearer ")) {
+            log.error("Unauthorized access: Missing or invalid token");
+            return new ResponseEntity<>(new ResponseDTO<String>("Unauthorized", "Token is missing or invalid"), HttpStatus.UNAUTHORIZED);
+        }
+        try{
+            String[]tokenData = token.split(" ");
+            log.info(Arrays.toString(tokenData));
+            if(jwtToken.isTokenExpired(tokenData[1])){
+                return new ResponseEntity<>(new ResponseDTO<String>("Unauthorized","Token is expired"),HttpStatus.UNAUTHORIZED);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(new ResponseDTO<String>("Unauthorized",e.getMessage()),HttpStatus.UNAUTHORIZED);
+        }
+
         try {
             AddressBookDTO addressBook = addressBookService.getAddressBookDataById(id);
             boolean operation = addressBookService.updateAddressBookData(id, updatedAddressBook);
@@ -110,8 +177,23 @@ public class AddressBookController {
      * @return ResponseEntity with deletion status
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<ResponseDTO<?>> deleteAddressBook(@PathVariable Long id) {
+    public ResponseEntity<ResponseDTO<?>> deleteAddressBook(@PathVariable Long id,@RequestHeader(value = "Authorization", required = false) String token) {
         log.info("Deleting address book entry with ID: {}", id);
+
+        if (token == null || !token.startsWith("Bearer ")) {
+            log.error("Unauthorized access: Missing or invalid token");
+            return new ResponseEntity<>(new ResponseDTO<String>("Unauthorized", "Token is missing or invalid"), HttpStatus.UNAUTHORIZED);
+        }
+        try{
+            String[]tokenData = token.split(" ");
+            log.info(Arrays.toString(tokenData));
+            if(jwtToken.isTokenExpired(tokenData[1])){
+                return new ResponseEntity<>(new ResponseDTO<String>("Unauthorized","Token is expired"),HttpStatus.UNAUTHORIZED);
+            }
+        } catch (Exception e) {
+            return new ResponseEntity<>(new ResponseDTO<String>("Unauthorized",e.getMessage()),HttpStatus.UNAUTHORIZED);
+        }
+
         try {
             AddressBookDTO addressBook = addressBookService.getAddressBookDataById(id);
             if (addressBook == null)
